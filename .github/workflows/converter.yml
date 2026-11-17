@@ -1,0 +1,36 @@
+name: Build Converter APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unzip kit
+        run: unzip -q converter-kit.zip -d kit
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+      - name: Build template APK
+        working-directory: kit/template
+        run: gradle assembleRelease --no-daemon --stacktrace
+      - name: Put template inside converter
+        run: cp kit/template/app/build/outputs/apk/release/app-release.apk kit/converter/app/src/main/assets/template.apk
+      - name: Build converter APK
+        working-directory: kit/converter
+        run: gradle assembleRelease --no-daemon --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: converter-apk
+          path: kit/converter/app/build/outputs/apk/release/app-release.apk
+          retention-days: 7
